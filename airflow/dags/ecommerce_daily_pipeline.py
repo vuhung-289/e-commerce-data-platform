@@ -54,9 +54,9 @@ def ingest_exchange_rate(**context):
         f"day={target_date.day:02d}/data.parquet"
     )
 
-    if gcs.file_exists(gcs_path):
-        print(f"Already exists, skipping: {gcs_path}")
-        return {"status": "skipped", "path": gcs_path}
+    # if gcs.file_exists(gcs_path):
+    #     print(f"Already exists, skipping: {gcs_path}")
+    #     return {"status": "skipped", "path": gcs_path}
 
     df = fetch_exchange_rate(target_date)
     path = gcs.upload_parquet(df, gcs_path)
@@ -78,9 +78,9 @@ def ingest_news(**context):
         f"day={target_date.day:02d}/data.parquet"
     )
 
-    if gcs.file_exists(gcs_path):
-        print(f"Already exists, skipping: {gcs_path}")
-        return {"status": "skipped", "path": gcs_path}
+    # if gcs.file_exists(gcs_path):
+    #     print(f"Already exists, skipping: {gcs_path}")
+    #     return {"status": "skipped", "path": gcs_path}
 
     df = fetch_news(target_date)
     path = gcs.upload_parquet(df, gcs_path)
@@ -102,9 +102,9 @@ def ingest_transactions(**context):
         f"day={target_date.day:02d}/data.parquet"
     )
 
-    if gcs.file_exists(gcs_path):
-        print(f"Already exists, skipping: {gcs_path}")
-        return {"status": "skipped", "path": gcs_path}
+    # if gcs.file_exists(gcs_path):
+    #     print(f"Already exists, skipping: {gcs_path}")
+    #     return {"status": "skipped", "path": gcs_path}
 
     df = generate_transactions(target_date, n_records=500)
     path = gcs.upload_parquet(df, gcs_path)
@@ -247,7 +247,7 @@ with DAG(
     description="E-commerce daily ingestion + dbt transformation",
     schedule="0 6 * * *",       # 6:00 AM UTC mỗi ngày = 1:00 PM giờ VN
     start_date=datetime(2026, 5, 11),
-    catchup=False,               # True = backfill tự động khi deploy
+    catchup=True,               # True = backfill tự động khi deploy
     max_active_runs=3,          # Chạy tối đa 3 ngày song song khi backfill
     tags=["ecommerce", "ingestion", "dbt", "production"],
     default_args=DEFAULT_ARGS,

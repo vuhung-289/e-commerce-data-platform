@@ -13,8 +13,8 @@
 with transactions as (
     select * from {{ ref('stg_transactions') }}
     {% if is_incremental() %}
-        -- Chỉ lấy 3 ngày gần nhất để xử lý late-arriving data
-        where order_date >= date_sub(current_date(), interval 3 day)
+        -- Chỉ lấy 3 ngày gần nhất để xử lý late-arriving data tính từ ngày chạy
+        where order_date >= date_sub(cast('{{ var("execution_date", run_started_at.strftime("%Y-%m-%d")) }}' as date), interval 3 day)
     {% endif %}
 ),
 

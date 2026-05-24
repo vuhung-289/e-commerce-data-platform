@@ -10,3 +10,12 @@ ecommerce_platform:
       location: asia-southeast1
       threads: 4
       timeout_seconds: 300
+    local:
+      type: bigquery
+      method: service-account
+      project: ecommerce-data-platform-492602
+      dataset: staging
+      keyfile: c:\Users\hungv\ecommerce-data-platform\gcp-credentials.json
+      location: asia-southeast1
+      threads: 4
+      timeout_seconds: 300

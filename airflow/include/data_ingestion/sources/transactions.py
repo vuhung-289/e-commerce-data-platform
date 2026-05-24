@@ -10,8 +10,6 @@ from faker import Faker
 from loguru import logger
 
 fake = Faker("vi_VN")
-random.seed(42)
-np.random.seed(42)
 
 # ---- Business logic cho thị trường VN ----
 
@@ -92,7 +90,12 @@ def generate_transactions(
     if target_date is None:
         target_date = date.today()
 
-    logger.info(f"Generating {n_records} transactions for {target_date}")
+    # Dynamic seeding based on date for idempotency and distinct daily values
+    date_seed = int(target_date.strftime("%Y%m%d"))
+    random.seed(date_seed)
+    np.random.seed(date_seed)
+
+    logger.info(f"Generating {n_records} transactions for {target_date} using seed {date_seed}")
 
     # Weekend có traffic cao hơn ~30%
     weekday = target_date.weekday()
