@@ -1,6 +1,6 @@
--- Mart: bảng tổng hợp mỗi ngày 1 dòng
--- Join 3 sources lại, tính đủ metrics cho dashboard
--- Incremental: chỉ process data mới, không recompute toàn bộ
+-- Mart: daily summary table, one row per day
+-- Joins all 3 sources, computes dashboard metrics
+-- Incremental: only processes new data, no full recompute
 
 {{
     config(
@@ -13,7 +13,7 @@
 with transactions as (
     select * from {{ ref('stg_transactions') }}
     {% if is_incremental() %}
-        -- Chỉ lấy 3 ngày gần nhất để xử lý late-arriving data tính từ ngày chạy
+        -- Only fetch last 3 days to handle late-arriving data from execution date
         where order_date >= date_sub(cast('{{ var("execution_date", run_started_at.strftime("%Y-%m-%d")) }}' as date), interval 3 day)
     {% endif %}
 ),
@@ -26,8 +26,8 @@ news as (
     select * from {{ ref('stg_news') }}
 ),
 
--- FIX: Pre-aggregate top_category và top_payment trước, tránh correlated subquery
--- Top category theo GMV mỗi ngày
+-- FIX: Pre-aggregate top_category and top_payment to avoid correlated subquery
+-- Top category by GMV per day
 top_category as (
     select
         order_date,
@@ -48,7 +48,7 @@ top_category as (
     where rn = 1
 ),
 
--- Top payment method mỗi ngày
+-- Top payment method per day
 top_payment as (
     select
         order_date,
@@ -68,7 +68,7 @@ top_payment as (
     where rn = 1
 ),
 
--- Aggregate transactions theo ngày
+-- Aggregate transactions by day
 daily_txn as (
     select
         t.order_date,
@@ -108,7 +108,7 @@ daily_txn as (
     group by t.order_date
 ),
 
--- FIX: JOIN thay vì correlated subquery
+-- FIX: JOIN instead of correlated subquery
 daily_with_tops as (
     select
         d.*,
@@ -119,7 +119,7 @@ daily_with_tops as (
     left join top_payment  tp on d.order_date = tp.order_date
 ),
 
--- Join với exchange rate
+-- Join with exchange rate
 with_fx as (
     select
         d.*,
@@ -133,7 +133,7 @@ with_fx as (
         on d.order_date = e.rate_date
 ),
 
--- Join với news events
+-- Join with news events
 final as (
     select
         f.*,

@@ -1,6 +1,6 @@
 """
-Tạo 3 datasets trong BigQuery tương ứng 3 lớp của Lakehouse.
-Chạy một lần duy nhất khi setup.
+Create 3 BigQuery datasets corresponding to 3 Lakehouse layers.
+Run once during initial setup.
 """
 import os
 from dotenv import load_dotenv
@@ -13,8 +13,8 @@ PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 LOCATION = "asia-southeast1"
 
 DATASETS = {
-    "raw":     "External tables trỏ thẳng vào GCS Parquet — không copy data",
-    "staging": "Cleaned, typed, renamed — 1:1 với raw nhưng đã chuẩn hoá",
+    "raw":     "External tables pointing to GCS Parquet — no data copy",
+    "staging": "Cleaned, typed, renamed — 1:1 with raw but standardized",
     "marts":   "Business-ready tables — dbt incremental models",
 }
 

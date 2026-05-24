@@ -27,17 +27,17 @@ EXTERNAL_TABLES = [
 def create_external_table(client: bigquery.Client, config: dict):
     external_config = bigquery.ExternalConfig("PARQUET")
     external_config.source_uris = [config["source_uri"]]
-    external_config.autodetect = True  # tự detect type từ Parquet
+    external_config.autodetect = True  # auto-detect types from Parquet
 
     hive_options = bigquery.HivePartitioningOptions()
     hive_options.mode = "AUTO"
     hive_options.source_uri_prefix = config["source_uri"].replace("/*", "")
     external_config.hive_partitioning = hive_options
 
-    table = bigquery.Table(config["table_id"])  # không khai báo schema cứng
+    table = bigquery.Table(config["table_id"])  # no hardcoded schema
     table.external_data_configuration = external_config
 
-    client.delete_table(config["table_id"], not_found_ok=True)  # xoá table cũ
+    client.delete_table(config["table_id"], not_found_ok=True)  # drop old table
     client.create_table(table)
     logger.success(f"Recreated: {config['table_id']}")
 

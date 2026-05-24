@@ -1,6 +1,6 @@
 """
 E-commerce Daily Dashboard
-Streamlit app kết nối BigQuery — hiển thị metrics từ fact_daily_summary
+Streamlit app connected to BigQuery — displays metrics from fact_daily_summary
 """
 import os
 import streamlit as st
@@ -119,7 +119,7 @@ st.markdown("""
 # ── Data Loading ────────────────────────────────────────────────────────────
 @st.cache_data(ttl=300)
 def load_fact_daily_summary():
-    """Load fact_daily_summary từ BigQuery, cache 5 phút."""
+    """Load fact_daily_summary from BigQuery, cached for 5 minutes."""
     client = bigquery.Client(project=GCP_PROJECT)
     query = f"""
         SELECT *
@@ -133,7 +133,7 @@ def load_fact_daily_summary():
 
 @st.cache_data(ttl=300)
 def load_staging_transactions():
-    """Load transactions chi tiết cho drill-down."""
+    """Load detailed transactions for drill-down."""
     client = bigquery.Client(project=GCP_PROJECT)
     query = f"""
         SELECT order_date, platform, category, order_status,
@@ -213,7 +213,7 @@ def render_kpi(label, value, delta_pct, direction, prefix="", suffix=""):
     <div class="kpi-card">
         <div class="kpi-label">{label}</div>
         <div class="kpi-value">{prefix}{value}{suffix}</div>
-        <div class="{delta_class}">{arrow} {sign}{delta_pct:.1f}% vs hôm trước</div>
+        <div class="{delta_class}">{arrow} {sign}{delta_pct:.1f}% vs previous day</div>
     </div>
     """
 
@@ -232,23 +232,23 @@ def main():
     try:
         df = load_fact_daily_summary()
     except Exception as e:
-        st.error(f"Không thể kết nối BigQuery: {e}")
-        st.info("Kiểm tra `GOOGLE_APPLICATION_CREDENTIALS` và GCP Project ID")
+        st.error(f"Cannot connect to BigQuery: {e}")
+        st.info("Check `GOOGLE_APPLICATION_CREDENTIALS` and GCP Project ID")
         st.stop()
 
     if df.empty:
-        st.warning("Chưa có dữ liệu trong `fact_daily_summary`. Chạy pipeline trước!")
+        st.warning("No data in `fact_daily_summary`. Run the pipeline first!")
         st.stop()
 
     # ── Sidebar ─────────────────────────────────────────────────────────
     with st.sidebar:
-        st.markdown("### Bộ lọc")
+        st.markdown("### Filters")
 
         min_date = df["order_date"].min().date()
         max_date = df["order_date"].max().date()
 
         date_range = st.date_input(
-            "Khoảng thời gian",
+            "Date Range",
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date,
@@ -264,10 +264,10 @@ def main():
         filtered = df[mask].sort_values("order_date")
 
         st.markdown("---")
-        st.markdown(f"**{len(filtered)} ngày dữ liệu**")
-        st.markdown(f"**Cập nhật:** {datetime.now().strftime('%H:%M %d/%m/%Y')}")
+        st.markdown(f"**{len(filtered)} days of data**")
+        st.markdown(f"**Updated:** {datetime.now().strftime('%H:%M %d/%m/%Y')}")
 
-        if st.button("Làm mới dữ liệu", use_container_width=True):
+        if st.button("Refresh Data", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
@@ -280,7 +280,7 @@ def main():
         """, unsafe_allow_html=True)
 
     if filtered.empty:
-        st.warning("Không có dữ liệu trong khoảng thời gian đã chọn.")
+        st.warning("No data in the selected date range.")
         st.stop()
 
     # ── KPI Section ─────────────────────────────────────────────────────
@@ -302,9 +302,9 @@ def main():
     kpis = [
         ("GMV (VND)", format_vnd(latest["gmv_vnd"]), gmv_delta, gmv_dir, "", " ₫"),
         ("GMV (USD)", format_usd(latest["gmv_usd"]), usd_delta, usd_dir, "", ""),
-        ("Đơn hàng", f"{int(latest['total_orders']):,}", orders_delta, orders_dir, "", ""),
+        ("Orders", f"{int(latest['total_orders']):,}", orders_delta, orders_dir, "", ""),
         ("AOV", format_vnd(latest["avg_order_value_vnd"]), aov_delta, aov_dir, "", " ₫"),
-        ("Tỷ lệ huỷ", f"{latest['cancellation_rate_pct']:.1f}", cancel_delta, cancel_dir, "", "%"),
+        ("Cancel Rate", f"{latest['cancellation_rate_pct']:.1f}", cancel_delta, cancel_dir, "", "%"),
     ]
 
     for col, (label, value, delta, direction, prefix, suffix) in zip(cols, kpis):
@@ -314,7 +314,7 @@ def main():
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── Row 1: GMV Trend + Platform Breakdown ───────────────────────────
-    st.markdown('<div class="section-title">Xu hướng GMV & Phân bổ Platform</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">GMV Trend & Platform Breakdown</div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns([3, 2])
 
@@ -357,7 +357,7 @@ def main():
             fig_gmv.add_trace(
                 go.Scatter(
                     x=event_days["order_date"], y=event_days["gmv_vnd"],
-                    name="Ngày có sự kiện", mode="markers",
+                    name="Event Days", mode="markers",
                     marker=dict(color=COLORS["warning"], size=12, symbol="star",
                                 line=dict(width=1.5, color="#fff")),
                     hovertemplate="<b>⭐ Event Day</b><br>%{x|%d/%m/%Y}<extra></extra>",
@@ -366,7 +366,7 @@ def main():
             )
 
         fig_gmv.update_layout(
-            **CHART_LAYOUT, title="GMV theo ngày", height=380,
+            **CHART_LAYOUT, title="Daily GMV", height=380,
             barmode="overlay",
         )
         fig_gmv.update_yaxes(title_text="VND", secondary_y=False, gridcolor="rgba(102,126,234,0.08)")
@@ -392,15 +392,15 @@ def main():
                 marker=dict(colors=platform_colors, line=dict(color="#0E1117", width=2)),
                 textinfo="percent+label",
                 textfont=dict(size=12, color="#FAFAFA"),
-                hovertemplate="<b>%{label}</b><br>Đơn: %{value:,}<br>%{percent}<extra></extra>",
+                hovertemplate="<b>%{label}</b><br>Orders: %{value:,}<br>%{percent}<extra></extra>",
             )
         ])
 
         fig_platform.update_layout(
-            **CHART_LAYOUT, title="Phân bổ Platform", height=380,
+            **CHART_LAYOUT, title="Platform Breakdown", height=380,
             showlegend=False,
             annotations=[dict(
-                text=f"<b>{sum(platform_totals):,}</b><br>đơn",
+                text=f"<b>{sum(platform_totals):,}</b><br>orders",
                 x=0.5, y=0.5, font_size=16, font_color="#CCD6F6",
                 showarrow=False,
             )],
@@ -410,7 +410,7 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Row 2: Orders Trend + Exchange Rate ─────────────────────────────
-    st.markdown('<div class="section-title">Đơn hàng & Tỷ giá USD/VND</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Orders & USD/VND Exchange Rate</div>', unsafe_allow_html=True)
 
     col3, col4 = st.columns(2)
 
@@ -421,15 +421,15 @@ def main():
 
         fig_orders.add_trace(go.Scatter(
             x=filtered["order_date"], y=filtered["total_orders"],
-            name="Tổng đơn", fill="tozeroy",
+            name="Total Orders", fill="tozeroy",
             line=dict(color=COLORS["primary"], width=2),
             fillcolor="rgba(102, 126, 234, 0.15)",
-            hovertemplate="<b>%{x|%d/%m}</b><br>Tổng: %{y:,}<extra></extra>",
+            hovertemplate="<b>%{x|%d/%m}</b><br>Total: %{y:,}<extra></extra>",
         ))
 
         fig_orders.add_trace(go.Scatter(
             x=filtered["order_date"], y=filtered["revenue_orders"],
-            name="Đơn có doanh thu", fill="tozeroy",
+            name="Revenue Orders", fill="tozeroy",
             line=dict(color=COLORS["success"], width=2),
             fillcolor="rgba(72, 187, 120, 0.1)",
             hovertemplate="<b>%{x|%d/%m}</b><br>Revenue: %{y:,}<extra></extra>",
@@ -437,12 +437,12 @@ def main():
 
         fig_orders.add_trace(go.Scatter(
             x=filtered["order_date"], y=filtered["cancelled_orders"],
-            name="Đơn huỷ",
+            name="Cancelled",
             line=dict(color=COLORS["danger"], width=2, dash="dot"),
-            hovertemplate="<b>%{x|%d/%m}</b><br>Huỷ: %{y:,}<extra></extra>",
+            hovertemplate="<b>%{x|%d/%m}</b><br>Cancelled: %{y:,}<extra></extra>",
         ))
 
-        fig_orders.update_layout(**CHART_LAYOUT, title="Xu hướng đơn hàng", height=360)
+        fig_orders.update_layout(**CHART_LAYOUT, title="Order Trend", height=360)
         st.plotly_chart(fig_orders, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -461,13 +461,13 @@ def main():
             hovertemplate="<b>%{x|%d/%m}</b><br>Sell: %{y:,.0f} VND<extra></extra>",
         ))
 
-        fig_fx.update_layout(**CHART_LAYOUT, title="Tỷ giá USD/VND (Vietcombank)", height=360)
+        fig_fx.update_layout(**CHART_LAYOUT, title="USD/VND Rate (Vietcombank)", height=360)
         fig_fx.update_yaxes(tickformat=",")
         st.plotly_chart(fig_fx, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Row 3: Cancel Rate + News Correlation ───────────────────────────
-    st.markdown('<div class="section-title">Tỷ lệ huỷ/trả & Tương quan tin tức</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Cancel/Return Rate & News Correlation</div>', unsafe_allow_html=True)
 
     col5, col6 = st.columns(2)
 
@@ -478,20 +478,20 @@ def main():
 
         fig_rates.add_trace(go.Scatter(
             x=filtered["order_date"], y=filtered["cancellation_rate_pct"],
-            name="Tỷ lệ huỷ %", fill="tozeroy",
+            name="Cancel Rate %", fill="tozeroy",
             line=dict(color=COLORS["danger"], width=2),
             fillcolor="rgba(252, 129, 129, 0.1)",
-            hovertemplate="<b>%{x|%d/%m}</b><br>Huỷ: %{y:.1f}%<extra></extra>",
+            hovertemplate="<b>%{x|%d/%m}</b><br>Cancel: %{y:.1f}%<extra></extra>",
         ))
 
         fig_rates.add_trace(go.Scatter(
             x=filtered["order_date"], y=filtered["return_rate_pct"],
-            name="Tỷ lệ trả %",
+            name="Return Rate %",
             line=dict(color=COLORS["warning"], width=2, dash="dash"),
-            hovertemplate="<b>%{x|%d/%m}</b><br>Trả: %{y:.1f}%<extra></extra>",
+            hovertemplate="<b>%{x|%d/%m}</b><br>Return: %{y:.1f}%<extra></extra>",
         ))
 
-        fig_rates.update_layout(**CHART_LAYOUT, title="Tỷ lệ huỷ & trả hàng", height=360)
+        fig_rates.update_layout(**CHART_LAYOUT, title="Cancel & Return Rate", height=360)
         st.plotly_chart(fig_rates, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -503,10 +503,10 @@ def main():
         fig_news.add_trace(
             go.Bar(
                 x=filtered["order_date"], y=filtered["news_ecommerce_articles"],
-                name="Tin e-commerce",
+                name="E-commerce News",
                 marker=dict(color=COLORS["info"], cornerradius=3),
                 opacity=0.6,
-                hovertemplate="<b>%{x|%d/%m}</b><br>Tin: %{y}<extra></extra>",
+                hovertemplate="<b>%{x|%d/%m}</b><br>Articles: %{y}<extra></extra>",
             ),
             secondary_y=False,
         )
@@ -522,26 +522,26 @@ def main():
             secondary_y=True,
         )
 
-        fig_news.update_layout(**CHART_LAYOUT, title="Tin tức vs GMV", height=360)
-        fig_news.update_yaxes(title_text="Số bài báo", secondary_y=False, gridcolor="rgba(102,126,234,0.08)")
+        fig_news.update_layout(**CHART_LAYOUT, title="News vs GMV", height=360)
+        fig_news.update_yaxes(title_text="Articles", secondary_y=False, gridcolor="rgba(102,126,234,0.08)")
         fig_news.update_yaxes(title_text="GMV (VND)", secondary_y=True, gridcolor="rgba(0,0,0,0)")
 
         st.plotly_chart(fig_news, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Row 4: Top Category + Payment Method ────────────────────────────
-    st.markdown('<div class="section-title">Thông tin bổ sung</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Additional Insights</div>', unsafe_allow_html=True)
 
     col7, col8 = st.columns(2)
 
     with col7:
         st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        st.markdown("##### Top Category theo ngày")
+        st.markdown("##### Top Category by Day")
 
         display_df = filtered[["order_date", "top_category_by_gmv", "top_payment_method",
                                "unique_customers"]].copy()
         display_df["order_date"] = display_df["order_date"].dt.strftime("%d/%m/%Y")
-        display_df.columns = ["Ngày", "Top Category", "Top Payment", "Khách hàng"]
+        display_df.columns = ["Date", "Top Category", "Top Payment", "Customers"]
 
         st.dataframe(
             display_df.reset_index(drop=True),
@@ -564,26 +564,26 @@ def main():
             platform_data.append(go.Bar(
                 x=filtered["order_date"], y=filtered[col_name],
                 name=label, marker_color=color,
-                hovertemplate=f"<b>{label}</b><br>" + "%{x|%d/%m}: %{y:,} đơn<extra></extra>",
+                hovertemplate=f"<b>{label}</b><br>" + "%{x|%d/%m}: %{y:,} orders<extra></extra>",
             ))
 
         fig_stacked = go.Figure(data=platform_data)
         fig_stacked.update_layout(
-            **CHART_LAYOUT, title="Đơn hàng theo Platform/ngày",
+            **CHART_LAYOUT, title="Orders by Platform/Day",
             height=340, barmode="stack",
         )
         st.plotly_chart(fig_stacked, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Raw Data ────────────────────────────────────────────────────────
-    with st.expander("Xem dữ liệu thô (fact_daily_summary)", expanded=False):
+    with st.expander("View Raw Data (fact_daily_summary)", expanded=False):
         show_df = filtered.copy()
         show_df["order_date"] = show_df["order_date"].dt.strftime("%d/%m/%Y")
         st.dataframe(show_df, use_container_width=True, height=400)
 
         csv = show_df.to_csv(index=False).encode("utf-8")
         st.download_button(
-            "Tải CSV", csv,
+            "Download CSV", csv,
             "fact_daily_summary.csv", "text/csv",
             use_container_width=True,
         )

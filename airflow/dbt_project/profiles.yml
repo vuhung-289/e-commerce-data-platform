@@ -4,7 +4,7 @@ ecommerce_platform:
     dev:
       type: bigquery
       method: service-account
-      project: ecommerce-data-platform-492602     # thay bằng project ID thật của bạn
+      project: ecommerce-data-platform-492602     # replace with your actual project ID
       dataset: staging
       keyfile: /usr/local/airflow/include/gcp-credentials.json
       location: asia-southeast1

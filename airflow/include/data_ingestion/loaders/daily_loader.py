@@ -1,5 +1,5 @@
 """
-Daily loader: chạy cả 3 sources và upload lên GCS.
+Daily loader: runs all 3 sources and uploads to GCS.
 """
 import os
 import sys
@@ -30,8 +30,8 @@ logger.add(
 
 def get_gcs_path(source: str, target_date: date) -> str:
     """
-    Hive-style partitioning — BigQuery và Spark đọc cực nhanh.
-    Ví dụ: exchange_rate/year=2024/month=01/day=15/data.parquet
+    Hive-style partitioning — fast reads for BigQuery and Spark.
+    e.g. exchange_rate/year=2024/month=01/day=15/data.parquet
     """
     return (
         f"{source}/"
@@ -44,8 +44,8 @@ def get_gcs_path(source: str, target_date: date) -> str:
 
 def run_daily_ingestion(target_date: date = None, skip_if_exists: bool = True):
     """
-    Chạy full ingestion pipeline cho một ngày.
-    skip_if_exists=True: idempotent — chạy lại không bị duplicate data.
+    Run full ingestion pipeline for a single day.
+    skip_if_exists=True: idempotent — re-runs won't duplicate data.
     """
     if target_date is None:
         target_date = date.today()
@@ -105,8 +105,8 @@ def run_daily_ingestion(target_date: date = None, skip_if_exists: bool = True):
 
 def backfill(days: int = 7):
     """
-    Backfill data cho N ngày gần nhất.
-    Rất hữu ích để có data phong phú cho visualisation.
+    Backfill data for the last N days.
+    Useful for generating rich data for visualization.
     """
     logger.info(f"Starting backfill for last {days} days")
     today = date.today()
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="E-commerce Data Ingestion")
     parser.add_argument("--backfill", type=int, default=0,
-                        help="Backfill N ngày (0 = chạy hôm nay)")
+                        help="Backfill N days (0 = run today)")
     parser.add_argument("--date", type=str, default=None,
                         help="Target date YYYY-MM-DD (default: today)")
     args = parser.parse_args()

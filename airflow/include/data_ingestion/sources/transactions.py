@@ -1,6 +1,6 @@
 """
-Generate synthetic e-commerce transaction data thực tế cho thị trường Việt Nam.
-Dùng Faker + custom logic để tạo data có phân phối tự nhiên.
+Generate realistic synthetic e-commerce transactions for the Vietnam market.
+Uses Faker + custom logic for natural distribution.
 """
 import random
 import pandas as pd
@@ -11,7 +11,7 @@ from loguru import logger
 
 fake = Faker("vi_VN")
 
-# ---- Business logic cho thị trường VN ----
+# ---- Business logic for VN market ----
 
 PLATFORMS = {
     "shopee": 0.45,
@@ -33,7 +33,7 @@ CATEGORIES = {
 }
 
 PAYMENT_METHODS = {
-    "COD": 0.38,         # Cash on delivery vẫn phổ biến ở VN
+    "COD": 0.38,         # Cash on delivery still popular in VN
     "Momo": 0.22,
     "VNPay": 0.18,
     "Bank transfer": 0.12,
@@ -68,14 +68,14 @@ def _weighted_choice(options: dict) -> str:
 
 
 def _generate_price(category_info: dict) -> float:
-    """Lognormal distribution cho price — thực tế hơn normal."""
+    """Lognormal distribution for price — more realistic than normal."""
     avg = category_info["avg_price"]
     std = category_info["std"]
     price = np.random.lognormal(
         mean=np.log(avg),
         sigma=std / avg * 0.8
     )
-    # Round về bội số 1000 (thực tế VN pricing)
+    # Round to nearest 1000 (typical VN pricing)
     return max(10_000, round(price / 1000) * 1000)
 
 
@@ -84,8 +84,8 @@ def generate_transactions(
     n_records: int = 500
 ) -> pd.DataFrame:
     """
-    Generate n_records synthetic transactions cho một ngày cụ thể.
-    Default 500 records/ngày — realistic cho mid-size platform.
+    Generate n_records synthetic transactions for a specific date.
+    Default 500 records/day — realistic for mid-size platform.
     """
     if target_date is None:
         target_date = date.today()
@@ -97,7 +97,7 @@ def generate_transactions(
 
     logger.info(f"Generating {n_records} transactions for {target_date} using seed {date_seed}")
 
-    # Weekend có traffic cao hơn ~30%
+    # Weekend traffic is ~30% higher
     weekday = target_date.weekday()
     if weekday >= 5:  # Saturday, Sunday
         n_records = int(n_records * 1.3)
@@ -128,7 +128,7 @@ def generate_transactions(
 
         total_amount = subtotal - discount_amount + shipping_fee
 
-        # Timestamp: phân phối theo giờ trong ngày (peak 11-13h, 20-22h)
+        # Timestamp: hourly distribution (peaks at 11-13h, 20-22h)
         hour_weights = [
             1, 0.5, 0.3, 0.2, 0.2, 0.3,   # 0-5h
             0.8, 1.5, 2, 2.5, 3, 4,         # 6-11h

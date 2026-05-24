@@ -15,7 +15,7 @@ clean-targets: ["target", "dbt_packages"]
 models:
   ecommerce_platform:
     staging:
-      +materialized: view          # staging = views, không tốn storage
+      +materialized: view          # staging = views, no storage cost
       +dataset: staging
     marts:
       +materialized: incremental   # marts = incremental tables

@@ -1,5 +1,5 @@
--- Staging: clean và chuẩn hoá transactions
--- Lọc bỏ bad data, rename columns, cast types
+-- Staging: clean and standardize transactions
+-- Filter bad data, rename columns, cast types
 
 with source as (
     select * from {{ source('raw', 'transactions') }}
@@ -15,7 +15,7 @@ cleaned as (
         customer_id,
         customer_city,
 
-        -- Chỉ lấy đơn completed và returned để tính revenue
+        -- Only completed and returned orders count as revenue
         order_status,
         case
             when order_status in ('completed', 'returned') then true
@@ -33,10 +33,10 @@ cleaned as (
 
     from source
     where
-        -- Loại bỏ records bị corrupt
+        -- Filter corrupt records
         transaction_id is not null
         and total_amount_vnd > 0
-        and total_amount_vnd < 500000000    -- cap 500M VND, tránh outlier lạ
+        and total_amount_vnd < 500000000    -- cap 500M VND, filter outliers
 )
 
 select * from cleaned

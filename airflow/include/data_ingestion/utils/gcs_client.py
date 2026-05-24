@@ -15,8 +15,8 @@ class GCSClient:
 
     def upload_parquet(self, df, gcs_path: str) -> str:
         """
-        Upload DataFrame dưới dạng Parquet lên GCS.
-        gcs_path ví dụ: 'exchange_rate/year=2024/month=01/day=15/data.parquet'
+        Upload DataFrame as Parquet to GCS.
+        e.g. gcs_path: 'exchange_rate/year=2024/month=01/day=15/data.parquet'
         """
         import pyarrow as pa
         import pyarrow.parquet as pq

@@ -1,4 +1,4 @@
--- Staging: filter chỉ lấy tin e-commerce relevant, tạo daily event flag
+-- Staging: filter e-commerce relevant news, create daily event flag
 
 with source as (
     select * from {{ source('raw', 'news') }}
@@ -19,7 +19,7 @@ relevant_news as (
     where title is not null
 ),
 
--- Aggregate lên daily: mỗi ngày có bao nhiêu tin, có event không
+-- Aggregate to daily: article count per day, event flag
 daily_news as (
     select
         news_date,

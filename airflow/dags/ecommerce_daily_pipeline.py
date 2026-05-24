@@ -1,6 +1,6 @@
 """
 DAG: ecommerce_daily_pipeline
-Schedule: mỗi ngày lúc 6:00 AM (sau khi các sàn close daily batch)
+Schedule: daily at 6:00 AM (after platforms close daily batch)
 Flow: ingest_exchange_rate → ingest_news → ingest_transactions
       → dbt_staging → dbt_marts → dbt_test → notify
 """
@@ -24,23 +24,23 @@ DEFAULT_ARGS = {
     "owner":            "data-engineer",
     "retries":          3,
     "retry_delay":      timedelta(minutes=5),
-    "retry_exponential_backoff": True,   # retry sau 5, 10, 20 phút
+    "retry_exponential_backoff": True,   # retry after 5, 10, 20 min
     "max_retry_delay":  timedelta(minutes=30),
     "execution_timeout": timedelta(hours=1),
-    "email_on_failure": False,           # tuần 3 dùng Slack alert thay email
+    "email_on_failure": False,           # using Slack alerts instead
     "depends_on_past":  False,
 }
 
-# ── Helper: lấy execution date ─────────────────────────────────────────────
+# ── Helper: get execution date ─────────────────────────────────────────────
 def get_execution_date(context) -> date:
-    """Lấy ngày từ Airflow execution context — quan trọng cho backfill."""
+    """Extract date from Airflow context — essential for backfill."""
     return context["logical_date"].date()
 
 
 # ── Task functions ──────────────────────────────────────────────────────────
 
 def ingest_exchange_rate(**context):
-    """Task 1: Fetch tỷ giá và upload GCS."""
+    """Task 1: Fetch exchange rates and upload to GCS."""
     sys.path.insert(0, "/usr/local/airflow/include")
     from data_ingestion.sources.exchange_rate import fetch_exchange_rate
     from data_ingestion.utils.gcs_client import GCSClient
@@ -64,7 +64,7 @@ def ingest_exchange_rate(**context):
 
 
 def ingest_news(**context):
-    """Task 2: Fetch RSS news và upload GCS."""
+    """Task 2: Fetch RSS news and upload to GCS."""
     sys.path.insert(0, "/usr/local/airflow/include")
     from data_ingestion.sources.news_rss import fetch_news
     from data_ingestion.utils.gcs_client import GCSClient
@@ -88,7 +88,7 @@ def ingest_news(**context):
 
 
 def ingest_transactions(**context):
-    """Task 3: Generate synthetic transactions và upload GCS."""
+    """Task 3: Generate synthetic transactions and upload to GCS."""
     sys.path.insert(0, "/usr/local/airflow/include")
     from data_ingestion.sources.transactions import generate_transactions
     from data_ingestion.utils.gcs_client import GCSClient
@@ -117,7 +117,7 @@ def run_dbt_command(command: str, **context):
 
     target_date = get_execution_date(context)
 
-    # Tìm dbt binary — fix lỗi "dbt not found" trong shell
+    # Resolve dbt binary path — fallback if not in PATH
     dbt_path = shutil.which("dbt") or "/home/astro/.local/bin/dbt"
 
     full_command = [
@@ -149,8 +149,8 @@ def run_dbt_command(command: str, **context):
 
 def check_data_quality(**context):
     """
-    Task quality gate: kiểm tra fact_daily_summary có data không.
-    Nếu thiếu → branch sang alert task thay vì mark success.
+    Quality gate: verify fact_daily_summary has data.
+    If missing → branch to alert task instead of success.
     """
     from google.cloud import bigquery
 
@@ -175,8 +175,8 @@ def check_data_quality(**context):
 
 def send_slack_alert(**context):
     """
-    Alert khi pipeline fail hoặc data missing.
-    Dùng Slack Incoming Webhook — free, không cần app phức tạp.
+    Alert on pipeline failure or missing data.
+    Uses Slack Incoming Webhook.
     """
     import requests as req
 
@@ -204,7 +204,7 @@ def send_slack_alert(**context):
 
 
 def log_pipeline_success(**context):
-    """Log summary metrics sau khi pipeline hoàn tất."""
+    """Log summary metrics after pipeline completion."""
     from google.cloud import bigquery
 
     target_date = get_execution_date(context)
@@ -245,10 +245,10 @@ def log_pipeline_success(**context):
 with DAG(
     dag_id="ecommerce_daily_pipeline",
     description="E-commerce daily ingestion + dbt transformation",
-    schedule="0 6 * * *",       # 6:00 AM UTC mỗi ngày = 1:00 PM giờ VN
+    schedule="0 6 * * *",       # 6:00 AM UTC daily = 1:00 PM Vietnam
     start_date=datetime(2026, 5, 11),
-    catchup=True,               # True = backfill tự động khi deploy
-    max_active_runs=3,          # Chạy tối đa 3 ngày song song khi backfill
+    catchup=True,               # auto-backfill on deploy
+    max_active_runs=3,          # max 3 parallel days during backfill
     tags=["ecommerce", "ingestion", "dbt", "production"],
     default_args=DEFAULT_ARGS,
     doc_md="""
@@ -271,7 +271,7 @@ with DAG(
     # ── Start ────────────────────────────────────────────────────────────
     start = EmptyOperator(task_id="start")
 
-    # ── Ingestion: chạy song song 3 sources ──────────────────────────────
+    # ── Ingestion: 3 sources in parallel ──────────────────────────────
     t_exchange_rate = PythonOperator(
         task_id="ingest_exchange_rate",
         python_callable=ingest_exchange_rate,
@@ -287,7 +287,7 @@ with DAG(
         python_callable=ingest_transactions,
     )
 
-    # ── dbt Staging: views, chạy sau khi cả 3 ingest xong ───────────────
+    # ── dbt Staging: views, runs after all 3 ingestions ───────────────
     t_dbt_staging = PythonOperator(
         task_id="dbt_run_staging",
         python_callable=run_dbt_command,
@@ -301,20 +301,20 @@ with DAG(
         op_kwargs={"command": "run --select marts"},
     )
 
-    # ── dbt Test: chạy tất cả tests ──────────────────────────────────────
+    # ── dbt Test: run all tests ──────────────────────────────────────
     t_dbt_test = PythonOperator(
         task_id="dbt_test",
         python_callable=run_dbt_command,
         op_kwargs={"command": "test"},
     )
 
-    # ── Quality Gate: branch nếu data missing ────────────────────────────
+    # ── Quality Gate: branch if data missing ────────────────────────────
     t_quality_check = BranchPythonOperator(
         task_id="check_data_quality",
         python_callable=check_data_quality,
     )
 
-    # ── Branch: alert nếu có vấn đề ──────────────────────────────────────
+    # ── Branch: alert on issues ──────────────────────────────────────
     t_alert = PythonOperator(
         task_id="alert_missing_data",
         python_callable=send_slack_alert,
@@ -330,7 +330,7 @@ with DAG(
     # ── End ──────────────────────────────────────────────────────────────
     end = EmptyOperator(
         task_id="end",
-        trigger_rule=TriggerRule.ONE_SUCCESS,  # chạy dù success hay alert
+        trigger_rule=TriggerRule.ONE_SUCCESS,  # runs regardless of success or alert
     )
 
     # ── Task Dependencies ─────────────────────────────────────────────────

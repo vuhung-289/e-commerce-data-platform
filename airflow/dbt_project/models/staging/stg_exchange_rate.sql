@@ -1,4 +1,4 @@
--- Staging: chỉ lấy USD/VND — thứ quan trọng nhất cho conversion
+-- Staging: extract USD/VND only — the key rate for conversion
 
 with source as (
     select * from {{ source('raw', 'exchange_rate') }}
@@ -18,7 +18,7 @@ usd_rate as (
     where
         currency_code = 'USD'
         and sell_rate is not null
-        and sell_rate > 20000   -- sanity check: USD/VND không thể < 20k
+        and sell_rate > 20000   -- sanity check: USD/VND can't be < 20k
 )
 
 select * from usd_rate

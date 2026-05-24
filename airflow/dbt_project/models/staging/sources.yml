@@ -2,9 +2,9 @@ version: 2
 
 sources:
   - name: raw
-    database: ecommerce-data-platform-492602   # thay bằng project ID của bạn
+    database: ecommerce-data-platform-492602   # replace with your project ID
     schema: raw
-    description: "Raw data ingested từ GCS external tables"
+    description: "Raw data ingested from GCS external tables"
 
     tables:
       - name: transactions
@@ -32,7 +32,7 @@ sources:
               - not_null
 
       - name: exchange_rate
-        description: "Tỷ giá Vietcombank hàng ngày"
+        description: "Daily Vietcombank exchange rates"
         columns:
           - name: currency_code
             tests:
@@ -47,7 +47,7 @@ sources:
               - not_null
 
       - name: news
-        description: "Tin tức e-commerce từ RSS feeds"
+        description: "E-commerce news from RSS feeds"
         columns:
           - name: date
             tests:

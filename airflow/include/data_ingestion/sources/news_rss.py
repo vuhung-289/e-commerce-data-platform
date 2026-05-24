@@ -1,6 +1,6 @@
 """
-Thu thập tin tức thương mại điện tử từ VNExpress RSS.
-Dùng để enrich context cho data analysis (sentiment, trends).
+Collect e-commerce news from VNExpress RSS feeds.
+Used to enrich data analysis context (sentiment, trends).
 """
 import feedparser
 import pandas as pd
@@ -22,7 +22,7 @@ ECOMMERCE_KEYWORDS = [
 
 def fetch_news(target_date: date = None) -> pd.DataFrame:
     """
-    Fetch và filter các tin tức liên quan đến e-commerce.
+    Fetch and filter e-commerce related news articles.
     """
     if target_date is None:
         target_date = date.today()
@@ -41,7 +41,7 @@ def fetch_news(target_date: date = None) -> pd.DataFrame:
                 summary = entry.get("summary", "")
                 content = (title + " " + summary).lower()
 
-                # Filter chỉ lấy tin liên quan e-commerce
+                # Filter only e-commerce related articles
                 is_relevant = any(kw in content for kw in ECOMMERCE_KEYWORDS)
 
                 # Parse publish date
