@@ -13,17 +13,7 @@ An end-to-end data platform for e-commerce analytics, built with **Airflow + dbt
 
 ## High-Level Architecture
 
-1. **Ingestion (Airflow DAG)**  
-   - USD/VND exchange rates (Vietcombank XML API)  
-   - E-commerce news (RSS)  
-   - Synthetic transactions (Faker + Vietnam market business rules)
-2. **Storage (GCS + BigQuery raw external tables)**  
-   - Parquet files are uploaded to GCS and queried through BigQuery external tables.
-3. **Transformation (dbt)**  
-   - `staging`: clean, rename, and cast fields  
-   - `marts`: business KPI model (`fact_daily_summary`)
-4. **Visualization (Streamlit + Plotly)**  
-   - KPI dashboard for GMV trend, order trend, cancellation rate, and platform breakdown
+![High-Level Architecture](docs/images/architecture.png)
 
 ## Tech Stack
 
